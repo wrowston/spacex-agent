@@ -26,6 +26,24 @@ function toModelMessages(
   }));
 }
 
+const TOOL_LOG_OUTPUT_MAX = 800;
+
+function stringifyForToolLog(value: unknown): string {
+  if (value === undefined) return "";
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function truncateForToolLog(value: unknown): string {
+  const s = stringifyForToolLog(value);
+  if (s.length <= TOOL_LOG_OUTPUT_MAX) return s;
+  return `${s.slice(0, TOOL_LOG_OUTPUT_MAX)}…`;
+}
+
 export async function POST(request: Request) {
   try {
     const { id, message }: ChatRequestBody = await request.json();
@@ -89,6 +107,36 @@ export async function POST(request: Request) {
           content: userText,
         },
       ],
+      experimental_onToolCallStart: ({ stepNumber, toolCall }) => {
+        console.info("[chat/tool] start", {
+          conversationId,
+          stepNumber,
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input: toolCall.input,
+        });
+      },
+      experimental_onToolCallFinish: (event) => {
+        const { stepNumber, toolCall, durationMs } = event;
+        const base = {
+          conversationId,
+          stepNumber,
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          durationMs,
+        };
+        if (event.success) {
+          console.info("[chat/tool] finish", {
+            ...base,
+            outputPreview: truncateForToolLog(event.output),
+          });
+        } else {
+          console.error("[chat/tool] finish", {
+            ...base,
+            error: event.error,
+          });
+        }
+      },
     });
 
     void result.consumeStream();
