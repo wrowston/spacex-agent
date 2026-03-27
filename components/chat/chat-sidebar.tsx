@@ -95,7 +95,7 @@ export function ChatSidebar({ mobileOpen, onMobileClose }: ChatSidebarProps) {
         href={`/chat/${id}`}
         onClick={onMobileClose}
         className={cn(
-          "block truncate rounded-lg px-3 py-2 text-left text-sm transition-colors",
+          "block truncate rounded-lg px-2 py-2 text-left text-sm transition-colors",
           active
             ? "bg-primary/15 font-medium text-foreground"
             : "text-foreground/80 hover:bg-muted/80",
@@ -127,11 +127,11 @@ export function ChatSidebar({ mobileOpen, onMobileClose }: ChatSidebarProps) {
             : "hidden md:flex",
         )}
       >
-        <div className="flex min-h-0 flex-1 flex-col pt-4">
-          <div className="px-3 pb-3">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 pt-4">
+          <div className="px-3">
             <Button
               type="button"
-              className="h-10 w-full justify-center gap-2 rounded-xl font-medium shadow-sm"
+              className="h-10 w-full gap-2 rounded-xl font-medium shadow-sm [&_svg]:shrink-0 [&_svg]:translate-y-px"
               disabled={newChatPending}
               onClick={() => void handleNewChat()}
             >
@@ -140,31 +140,36 @@ export function ChatSidebar({ mobileOpen, onMobileClose }: ChatSidebarProps) {
               ) : (
                 <MessageSquarePlus className="size-4" />
               )}
-              New chat
+              <span className="leading-none">New chat</span>
             </Button>
           </div>
 
-          <div className="relative px-3 pb-3">
-            <Search className="pointer-events-none absolute top-1/2 left-6 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search your threads…"
-              className="h-10 w-full rounded-xl border border-border/80 bg-background/80 pl-10 pr-3 text-sm outline-none ring-primary/30 placeholder:text-muted-foreground focus-visible:ring-2"
-            />
+          <div className="px-3">
+            <label className="flex h-10 items-center gap-2.5 rounded-xl border border-border/80 bg-background/80 px-3 focus-within:ring-2 focus-within:ring-primary/30">
+              <Search
+                className="size-4 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search your threads…"
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+            </label>
           </div>
 
-          <ScrollArea className="min-h-0 flex-1 px-2">
+          <ScrollArea className="min-h-0 flex-1 px-3">
             <div className="space-y-4 pb-4">
               {conversations === undefined ? (
-                <div className="space-y-2 px-2">
+                <div className="space-y-2">
                   <Skeleton className="h-9 w-full rounded-lg" />
                   <Skeleton className="h-9 w-full rounded-lg" />
                   <Skeleton className="h-9 w-full rounded-lg" />
                 </div>
               ) : filtered.length === 0 ? (
-                <p className="px-3 py-2 text-sm text-muted-foreground">
+                <p className="py-2 text-sm text-muted-foreground">
                   {query.trim()
                     ? "No threads match your search."
                     : "No chats yet."}
@@ -173,7 +178,7 @@ export function ChatSidebar({ mobileOpen, onMobileClose }: ChatSidebarProps) {
                 <>
                   {recent.length > 0 ? (
                     <div>
-                      <p className="px-3 pb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                      <p className="pb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
                         Last 7 days
                       </p>
                       <div className="space-y-0.5">
@@ -183,7 +188,7 @@ export function ChatSidebar({ mobileOpen, onMobileClose }: ChatSidebarProps) {
                   ) : null}
                   {older.length > 0 ? (
                     <div>
-                      <p className="px-3 pb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                      <p className="pb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
                         Older
                       </p>
                       <div className="space-y-0.5">

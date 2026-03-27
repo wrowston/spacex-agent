@@ -1,9 +1,15 @@
-import { streamText, type ModelMessage, type UIMessage } from "ai";
+import {
+  stepCountIs,
+  streamText,
+  type ModelMessage,
+  type UIMessage,
+} from "ai";
 import { fetchMutation, fetchQuery } from "convex/nextjs";
 
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { CHAT_SYSTEM_PROMPT, getChatModel } from "@/lib/ai/openrouter";
+import { CHAT_SYSTEM_PROMPT_WITH_SPACEX, getChatModel } from "@/lib/ai/openrouter";
+import { spacexTools } from "@/lib/ai/tools/spacex";
 import { getTextFromUIMessage } from "@/lib/chat/messages";
 
 type ChatRequestBody = {
@@ -73,7 +79,9 @@ export async function POST(request: Request) {
 
     const result = streamText({
       model: getChatModel(),
-      system: CHAT_SYSTEM_PROMPT,
+      system: CHAT_SYSTEM_PROMPT_WITH_SPACEX,
+      tools: spacexTools,
+      stopWhen: stepCountIs(12),
       messages: [
         ...toModelMessages(persistedMessages),
         {

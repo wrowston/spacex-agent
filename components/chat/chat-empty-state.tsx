@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  BookOpen,
-  Braces,
-  Compass,
-  GraduationCap,
-  Sparkles,
-} from "lucide-react";
+import { BookOpen, Calendar, MapPin, Rocket, Satellite } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -14,10 +8,10 @@ import { STARTER_CHIPS, STARTER_PROMPTS } from "@/lib/chat/ui-constants";
 import { cn } from "@/lib/utils";
 
 const chipIcons = {
-  sparkles: Sparkles,
-  compass: Compass,
-  code: Braces,
-  "graduation-cap": GraduationCap,
+  rocket: Rocket,
+  calendar: Calendar,
+  satellite: Satellite,
+  "map-pin": MapPin,
 } as const;
 
 type ChatEmptyStateProps = {
@@ -28,7 +22,11 @@ export function ChatEmptyState({ onFillInput }: ChatEmptyStateProps) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-4 py-8">
       <p className="text-center text-2xl font-medium tracking-tight sm:text-3xl">
-        How can I help you today?
+        Ask about SpaceX
+      </p>
+      <p className="mt-2 max-w-md text-center text-sm text-muted-foreground">
+        Launches, vehicles, pads, and missions—this assistant only covers
+        SpaceX.
       </p>
 
       <div className="mt-8 flex flex-wrap justify-center gap-2">
