@@ -1,6 +1,6 @@
 # spacex-agent
 
-**Try it:** [spacex-agent.vercel.app](https://spacex-agent.vercel.app/)
+**Try it:** [spacex-agent.vercel.app](https://spacex-agent.vercel.app/) — Convex and related backend settings are **already configured** for that deployment; you do not need your own Convex account to use the site.
 
 ## Overview
 
@@ -41,7 +41,7 @@ flowchart LR
 ### Prerequisites
 
 - [Bun](https://bun.sh) — this repo uses `packageManager: bun@1.3.4` in `package.json`. Use `bun install` and `bun run <script>`. If other lockfiles appear in the tree, prefer Bun as specified here.
-- A [Convex](https://convex.dev) account and a deployment for this app (see below).
+- A [Convex](https://convex.dev) deployment URL for **local** runs (see below—you can reuse the demo’s or create your own).
 - An [OpenRouter](https://openrouter.ai) API key for the chat API (see below).
 
 ### Getting an OpenRouter API key
@@ -49,9 +49,16 @@ flowchart LR
 1. Open **[openrouter.ai](https://openrouter.ai)** and **sign up** or **sign in** (you can use GitHub, Google, or email).
 2. Go to **[Keys](https://openrouter.ai/keys)** (from the dashboard: **API keys** / **Keys**).
 3. Click **Create API key**, give it a label if prompted, then **copy the key** once it is shown. Keys usually look like `sk-or-v1-...`.
-4. Paste it into `.env.local` as `OPENROUTER_API_KEY` (see [Environment variables](#environment-variables)). Do not commit it; `.env*` is gitignored.
+4. Paste it into `.env.local` as `OPENROUTER_API_KEY` (see [Environment variables](#environment-variables)). Do not commit it; `.env`* is gitignored.
 
-OpenRouter bills **by usage** across models; add a payment method or credits in their billing settings if your account requires it. The default chat model is set in code ([`lib/ai/openrouter.ts`](lib/ai/openrouter.ts)); override with `OPENROUTER_MODEL` if you want a different model on OpenRouter.
+OpenRouter bills **by usage** across models; add a payment method or credits in their billing settings if your account requires it. The default chat model is set in code (`[lib/ai/openrouter.ts](lib/ai/openrouter.ts)`); override with `OPENROUTER_MODEL` if you want a different model on OpenRouter.
+
+### Convex: use the provided deployment or create your own
+
+To run this repo **locally**, set `NEXT_PUBLIC_CONVEX_URL` in `.env.local` (see [Environment variables](#environment-variables)).
+
+- **Reuse the provided env:** You can point `NEXT_PUBLIC_CONVEX_URL` at the **same Convex deployment** used by the [live demo](https://spacex-agent.vercel.app/) if you have that URL (e.g. from the project maintainers, shared team docs, or the Vercel project’s environment variables). That way you talk to the same backend as production without creating a new Convex project.
+- **Use your own:** If you prefer isolated data, a separate dev/staging backend, or you do not have the shared URL, create and link **your own** Convex project—follow [Using your own Convex project](#using-your-own-convex-project).
 
 ### Using your own Convex project
 
@@ -189,7 +196,7 @@ flowchart LR
 
 
 1. **Mock-only HTTP tests** (`[tests/agent/spacex-fetch-mock.integration.test.ts](tests/agent/spacex-fetch-mock.integration.test.ts)`) — No LLM. Asserts the in-process SpaceX fetch mock returns fixtures and expected HTTP status codes so test infrastructure matches the real client’s requests.
-2. **Agent scenarios** (`[tests/agent/scenarios.test.ts](tests/agent/scenarios.test.ts)`) — **Real OpenRouter** + **mocked SpaceX** (`installSpacexFetchMock`). The suite is skipped when `OPENROUTER_API_KEY` is unset (`describe.skipIf`). Assertions include: next-launch flow uses SpaceX tools and the **fixture mission name** appears in the assistant text; **ambiguous** (“they”) questions do **not** call `spacex_get_launch_snapshot`; simulated **HTTP 500** yields user-facing failure language; **off-topic** questions do **not** invoke `spacex_*` tools; step count stays within **`DEFAULT_AGENT_MAX_STEPS`** ([`lib/ai/agent-run.ts`](lib/ai/agent-run.ts)).
+2. **Agent scenarios** (`[tests/agent/scenarios.test.ts](tests/agent/scenarios.test.ts)`) — **Real OpenRouter** + **mocked SpaceX** (`installSpacexFetchMock`). The suite is skipped when `OPENROUTER_API_KEY` is unset (`describe.skipIf`). Assertions include: next-launch flow uses SpaceX tools and the **fixture mission name** appears in the assistant text; **ambiguous** (“they”) questions do **not** call `spacex_get_launch_snapshot`; simulated **HTTP 500** yields user-facing failure language; **off-topic** questions do **not** invoke `spacex_*` tools; step count stays within `**DEFAULT_AGENT_MAX_STEPS`** (`[lib/ai/agent-run.ts](lib/ai/agent-run.ts)`).
 3. **Optional LLM-as-judge** — With `RUN_JUDGE=1` and `OPENROUTER_API_KEY`, an additional describe block runs `runAgentJudge` (`[lib/ai/agent-judge.ts](lib/ai/agent-judge.ts)`) on selected prompts. Example: `RUN_JUDGE=1 bun run test:agent`. Vitest does not load `.env.local` automatically; export variables in the shell or use a tool that injects them.
 
 Together these tests **regress tool choice, grounding against fixtures, error handling, and guardrails**; they do not prove correctness against live SpaceX data or every possible user prompt.
@@ -198,10 +205,10 @@ Together these tests **regress tool choice, grounding against fixtures, error ha
 
 Premises **about the agent** (model + tools + prompts)—not guarantees about vendors.
 
-- **Tool-calling reliability:** The model will usually invoke `spacex_*` tools when catalog facts are needed, follow snapshot vs query guidance in tool descriptions, and avoid inventing tool-backed dates, pads, or mission outcomes when tools can answer.
+- **Tool-calling reliability:** The model will usually invoke `spacex_`* tools when catalog facts are needed, follow snapshot vs query guidance in tool descriptions, and avoid inventing tool-backed dates, pads, or mission outcomes when tools can answer.
 - **Prompt adherence:** The model will ask clarifying questions before speculative tool use when referents are vague, deflect clearly off-topic questions without SpaceX tools, and surface tool errors in user-facing language instead of pretending success.
 - **Grounding:** Factual claims about launches, hardware, and schedules are **expected to come from tool outputs** (or explicit uncertainty), not from silent parametric knowledge—while still allowing general-knowledge answers where the prompt allows (e.g. strategy, speculation) with appropriate caveats.
-- **Community SpaceX-API as source of truth:** We rely on the **community-maintained** SpaceX-compatible HTTP API (see [`lib/spacex/config.ts`](lib/spacex/config.ts); default host is not official SpaceX) for tool-backed “accurate” results—meaning **faithful to what that API returns**, not necessarily to live operations. **The catalog we assume for this project effectively tops out around 2022** for the newest missions and details; questions about later activity may return nothing, stale rows, or be wrong relative to the real world unless you point `SPACEX_API_BASE_URL` at an up-to-date mirror.
+- **Community SpaceX-API as source of truth:** We rely on the **community-maintained** SpaceX-compatible HTTP API (see `[lib/spacex/config.ts](lib/spacex/config.ts)`; default host is not official SpaceX) for tool-backed “accurate” results—meaning **faithful to what that API returns**, not necessarily to live operations. **The catalog we assume for this project effectively tops out around 2022** for the newest missions and details; questions about later activity may return nothing, stale rows, or be wrong relative to the real world unless you point `SPACEX_API_BASE_URL` at an up-to-date mirror.
 - **Tool data quality:** Tool JSON may be incomplete, stale, or missing recent missions; the agent is prompted to treat empty results, errors, and impossible dates as first-class signals, not as prompts to guess.
 - **Tests vs chat:** `runAgentTurn` uses `temperature: 0` for steadier evaluations; production `streamText` does not pin temperature the same way, so **test behavior may be calmer than live** unless you align settings.
 - **Language:** System and tool descriptions target **English** user messages; multilingual or code-mixed inputs are out of scope for v1 behavior guarantees.
@@ -211,7 +218,7 @@ Premises **about the agent** (model + tools + prompts)—not guarantees about ve
 Deliberate **agent-design** choices and their downsides.
 
 - **Large system prompt:** Strong, explicit rules for clarification, off-topic handling, and tool use cost **many fixed tokens per turn**; cheaper than runaway tool loops but heavy versus a minimal prompt.
-- **Many specialized tools:** Fine-grained `spacex_*` entries improve routing when they work, but expand the tool schema the model must choose from—**more ways to pick the wrong tool** or over-call APIs versus a single generic query tool.
+- **Many specialized tools:** Fine-grained `spacex_`* entries improve routing when they work, but expand the tool schema the model must choose from—**more ways to pick the wrong tool** or over-call APIs versus a single generic query tool.
 - **Step cap (12):** Bounds multi-hop tool chains and cost; **deep investigations can stop mid-plan** if the model needs more than twelve steps.
 - **Payload trimming (`trimForModel`):** Keeps tool outputs in context, but the model may **not see full lists or nested fields**—answers can be incomplete on huge catalogs.
 - **Transcript-only context for the model:** Prior turns are plain user/assistant text—**no replay of past tool I/O** in the thread unless the assistant summarized it. Long threads are re-sent in full each request (**cost and context pressure**) with no automatic summarization.

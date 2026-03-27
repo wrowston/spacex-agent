@@ -86,6 +86,86 @@ function buildPaginatedOptions(
   return options;
 }
 
+/** True when the query is only date + past/upcoming filter + sort/pagination/populate—no mission/rocket/pad/success/text filters. */
+function isDateOnlyLaunchQuery(input: {
+  success?: boolean;
+  rocketId?: string;
+  launchpadId?: string;
+  missionNameContains?: string;
+  useFullTextSearch?: boolean;
+  fullTextQuery?: string;
+}): boolean {
+  if (input.success !== undefined) return false;
+  if (input.rocketId) return false;
+  if (input.launchpadId) return false;
+  if (input.missionNameContains) return false;
+  if (input.useFullTextSearch && input.fullTextQuery) return false;
+  return true;
+}
+
+/**
+ * When a date-filtered past-launch query returns zero rows, check whether the requested window
+ * starts after the newest completed launch in the dataset (coverage gap vs true zero).
+ */
+async function maybeAugmentLaunchQueryWithDatasetCoverage(
+  input: {
+    dateUtcGte?: string;
+    dateUtcLte?: string;
+    upcoming?: boolean;
+    success?: boolean;
+    rocketId?: string;
+    launchpadId?: string;
+    missionNameContains?: string;
+    useFullTextSearch?: boolean;
+    fullTextQuery?: string;
+  },
+  result: unknown,
+): Promise<unknown> {
+  if (typeof result !== "object" || result === null) return result;
+  const r = result as Record<string, unknown>;
+  if (r.totalDocs !== 0) return result;
+  if (!(input.dateUtcGte ?? input.dateUtcLte)) return result;
+  if (input.upcoming !== false) return result;
+  if (!input.dateUtcGte) return result;
+  if (!isDateOnlyLaunchQuery(input)) return result;
+
+  try {
+    const latest = await queryLaunches({
+      query: { upcoming: false },
+      options: {
+        sort: { date_utc: -1 },
+        limit: 1,
+      },
+    });
+    const latestObj =
+      typeof latest === "object" && latest !== null ? (latest as Record<string, unknown>) : null;
+    const docs = latestObj?.docs;
+    if (!Array.isArray(docs) || docs.length === 0) return result;
+    const first = docs[0];
+    if (typeof first !== "object" || first === null) return result;
+    const dateUtc = (first as { date_utc?: unknown }).date_utc;
+    if (typeof dateUtc !== "string") return result;
+
+    const rangeStartMs = Date.parse(input.dateUtcGte);
+    const latestMs = Date.parse(dateUtc);
+    if (Number.isNaN(rangeStartMs) || Number.isNaN(latestMs)) return result;
+
+    if (rangeStartMs > latestMs) {
+      return {
+        ...r,
+        datasetCoverage: {
+          latestCompletedLaunchDateUtc: dateUtc,
+          requestedRangeStartsAfterLatestInDataset: true,
+        },
+      };
+    }
+  } catch {
+    return result;
+  }
+
+  return result;
+}
+
 export const spacexTools = {
   spacex_get_launch_snapshot: tool({
     description:
@@ -119,7 +199,7 @@ export const spacexTools = {
 
   spacex_query_launches: tool({
     description:
-      "Search and filter launches (dates, success, rocket, launchpad, mission name). Sort semantics: soonest upcoming launch → upcoming: true, sortOrder: asc; most recent completed → upcoming: false, sortOrder: desc. upcoming: false with sortOrder: asc lists oldest missions first (misleading for “next launch”). Results are paginated; large lists are truncated. Use spacex_resolve_rocket or spacex_resolve_launchpad first when you only have a vehicle or site name.",
+      "Search and filter launches (dates, success, rocket, launchpad, mission name). Sort semantics: soonest upcoming launch → upcoming: true, sortOrder: asc; most recent completed → upcoming: false, sortOrder: desc. upcoming: false with sortOrder: asc lists oldest missions first (misleading for “next launch”). Results are paginated; large lists are truncated. Use spacex_resolve_rocket or spacex_resolve_launchpad first when you only have a vehicle or site name. When the JSON includes **datasetCoverage** with **requestedRangeStartsAfterLatestInDataset**, the requested date window starts after the newest completed launch in this catalog—treat that as coverage/staleness, not proof of zero real-world launches.",
     inputSchema: zodSchema(
       z.object({
         dateUtcGte: z
@@ -201,7 +281,8 @@ export const spacexTools = {
 
         const body: QueryBody = { query, options };
         const result = await queryLaunches(body);
-        return JSON.stringify(result);
+        const augmented = await maybeAugmentLaunchQueryWithDatasetCoverage(input, result);
+        return JSON.stringify(augmented);
       } catch (e) {
         return formatSpacexError(e);
       }
