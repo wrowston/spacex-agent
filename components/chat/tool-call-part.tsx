@@ -13,6 +13,16 @@ const TOOL_DISPLAY_NAMES: Record<string, string> = {
   spacex_resolve_rocket: "Resolve Rocket",
   spacex_resolve_launchpad: "Resolve Launchpad",
   spacex_company: "Company Info",
+  spacex_query_capsules: "Query Capsules",
+  spacex_query_cores: "Query Cores",
+  spacex_query_crew: "Query Crew",
+  spacex_query_dragons: "Query Dragons",
+  spacex_query_landpads: "Query Landpads",
+  spacex_query_payloads: "Query Payloads",
+  spacex_query_ships: "Query Ships",
+  spacex_query_starlink: "Query Starlink",
+  spacex_query_history: "Query History",
+  spacex_get_roadster: "Roadster",
 };
 
 function humanizeToolName(rawName: string): string {

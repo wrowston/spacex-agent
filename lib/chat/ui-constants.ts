@@ -10,6 +10,7 @@ export const STARTER_PROMPTS = [
   "Show me all successful Falcon 9 launches.",
   "What was the outcome of the first Falcon Heavy launch?",
   "Tell me about the most recent launch from Vandenberg.",
+  "How far is Starman's Tesla Roadster from Earth right now?"
 ] as const;
 
 export const STARTER_CHIPS: {

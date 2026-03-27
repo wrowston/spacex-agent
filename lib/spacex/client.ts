@@ -3,6 +3,41 @@ import "server-only";
 import { getSpacexBaseUrl } from "./config";
 import type { QueryBody, SpacexPaginated } from "./types";
 
+function crewNameSortKey(doc: unknown): string {
+  if (doc && typeof doc === "object" && "name" in doc) {
+    return String((doc as { name: unknown }).name ?? "");
+  }
+  return "";
+}
+
+/** Sort by `name` ascending, then slice for limit/page (matches POST query behavior). */
+function paginateCrewInMemory(
+  all: unknown[],
+  limit: number,
+  page: number | undefined,
+): SpacexPaginated<unknown> {
+  const sorted = [...all].sort((a, b) =>
+    crewNameSortKey(a).localeCompare(crewNameSortKey(b)),
+  );
+  const totalDocs = sorted.length;
+  const pageNum = page ?? 1;
+  const totalPages =
+    totalDocs === 0 ? 1 : Math.max(1, Math.ceil(totalDocs / limit));
+  const start = (pageNum - 1) * limit;
+  const docs = sorted.slice(start, start + limit);
+  return {
+    docs,
+    totalDocs,
+    limit,
+    totalPages,
+    page: pageNum,
+    hasPrevPage: pageNum > 1,
+    hasNextPage: pageNum < totalPages,
+    prevPage: pageNum > 1 ? pageNum - 1 : null,
+    nextPage: pageNum < totalPages ? pageNum + 1 : null,
+  };
+}
+
 const MAX_BODY_SNIPPET = 200;
 
 export class SpacexApiError extends Error {
@@ -168,10 +203,14 @@ export async function getLaunchWithPopulate(
   launchId: string,
 ): Promise<unknown> {
   const result = await spacexPostQuery<unknown>("/v5/launches/query", {
-    query: { id: launchId },
+    query: { _id: launchId },
     options: {
       limit: 1,
-      populate: ["rocket", "launchpad"],
+      populate: [
+        "rocket",
+        "launchpad",
+        { path: "crew.crew", select: { name: 1, agency: 1 } },
+      ],
     },
   });
   const doc = result.docs[0];
@@ -204,5 +243,103 @@ export async function queryLaunchpads(body: QueryBody): Promise<unknown> {
 
 export async function getCompany(): Promise<unknown> {
   const data = await spacexGetJson<unknown>("/v4/company");
+  return trimForModel(data);
+}
+
+/** POST `/v4/{resource}/query` — capsules, cores, crew, dragons, landpads, payloads, ships, history */
+export type SpacexV4QueryResource =
+  | "capsules"
+  | "cores"
+  | "crew"
+  | "dragons"
+  | "landpads"
+  | "payloads"
+  | "ships"
+  | "history";
+
+export async function queryV4Resource(
+  resource: SpacexV4QueryResource,
+  body: QueryBody,
+): Promise<unknown> {
+  const result = await spacexPostQuery<unknown>(
+    `/v4/${resource}/query`,
+    body,
+  );
+  return {
+    ...result,
+    docs: trimForModel(result.docs) as unknown[],
+  };
+}
+
+/** Single crew member: GET `/v4/crew/:id`. */
+export async function getCrewById(id: string): Promise<unknown> {
+  const data = await spacexGetJson<unknown>(
+    `/v4/crew/${encodeURIComponent(id)}`,
+  );
+  return trimForModel(data);
+}
+
+/**
+ * POST `/v4/crew/query`. If the POST returns no rows for an **unfiltered** query,
+ * retries using GET `/v4/crew` and paginates in memory (helps mirrors that mishandle POST).
+ */
+export async function queryCrew(
+  body: QueryBody,
+  opts: { unfiltered: boolean; limit: number; page?: number },
+): Promise<unknown> {
+  const result = await spacexPostQuery<unknown>("/v4/crew/query", body);
+  if (result.totalDocs === 0 && opts.unfiltered) {
+    const all = await spacexGetJson<unknown>("/v4/crew");
+    if (!Array.isArray(all)) {
+      return {
+        ...result,
+        docs: trimForModel(result.docs) as unknown[],
+      };
+    }
+    const paginated = paginateCrewInMemory(all, opts.limit, opts.page);
+    return {
+      ...paginated,
+      docs: trimForModel(paginated.docs) as unknown[],
+    };
+  }
+  return {
+    ...result,
+    docs: trimForModel(result.docs) as unknown[],
+  };
+}
+
+function stripStarlinkSpaceTrack(docs: unknown[]): unknown[] {
+  return docs.map((doc) => {
+    if (doc && typeof doc === "object" && "spaceTrack" in doc) {
+      const { spaceTrack: _omit, ...rest } = doc as Record<string, unknown>;
+      return trimForModel({
+        ...rest,
+        spaceTrack: "(omitted; pass includeOrbitData: true for full Space Track / TLE data)",
+      });
+    }
+    return trimForModel(doc);
+  });
+}
+
+/** Starlink docs are large when `spaceTrack` is included; omit it by default. */
+export async function queryStarlink(
+  body: QueryBody,
+  includeOrbitData: boolean,
+): Promise<unknown> {
+  const result = await spacexPostQuery<unknown>("/v4/starlink/query", body);
+  if (includeOrbitData) {
+    return {
+      ...result,
+      docs: trimForModel(result.docs) as unknown[],
+    };
+  }
+  return {
+    ...result,
+    docs: stripStarlinkSpaceTrack(result.docs as unknown[]),
+  };
+}
+
+export async function getRoadster(): Promise<unknown> {
+  const data = await spacexGetJson<unknown>("/v4/roadster");
   return trimForModel(data);
 }
