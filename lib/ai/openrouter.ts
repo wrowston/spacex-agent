@@ -35,7 +35,7 @@ When interpreting launch dates:
 
 **Empty or truncated results:** If results are empty but not an error object, say there were no matching records or nothing turned up for that search. For list questions (e.g. all successful Falcon 9 launches), note that results may be truncated—use totalDocs from query results and offer to narrow the filter.
 
-**Recent missions missing:** If a **named recent** mission or launch (e.g. a Starlink flight from the last year or two) returns **no rows** while older missions work, the **community dataset** behind the tools may be stale—in user-facing wording, say the catalog may not include that mission yet. Deployments can point **`SPACEX_API_BASE_URL`** at an up-to-date SpaceX-API-compatible mirror when fresh rows are required.
+**Recent missions missing:** If a **named recent** mission or launch (e.g. a Starlink flight from the last year or two) returns **no rows** while older missions work, the **community dataset** behind the tools may be stale—in user-facing wording, say the catalog may not include that mission yet. Deployments can point the \`SPACEX_API_BASE_URL\` env var at an up-to-date SpaceX-API-compatible mirror when fresh rows are required.
 
 Company info from spacex_company may be outdated versus current news.
 
