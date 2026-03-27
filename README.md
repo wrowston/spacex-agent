@@ -1,5 +1,7 @@
 # spacex-agent
 
+**Try it:** [spacex-agent.vercel.app](https://spacex-agent.vercel.app/)
+
 ## Overview
 
 **spacex-agent** is a SpaceX-focused chat assistant for people who want launch schedules, vehicles, pads, and catalog facts grounded in the public r/SpaceX dataset. The UI is a Next.js app: conversations live in **Convex**, replies stream from an LLM via **OpenRouter**, and the model can call **SpaceX HTTP tools** (default API base `https://api.spacexdata.com`). The system prompt pushes the model to use tools for catalog facts, ask clarifying questions when the subject is ambiguous, report lookup failures plainly, and refuse unrelated chaff without calling SpaceX tools.
@@ -40,7 +42,16 @@ flowchart LR
 
 - [Bun](https://bun.sh) — this repo uses `packageManager: bun@1.3.4` in `package.json`. Use `bun install` and `bun run <script>`. If other lockfiles appear in the tree, prefer Bun as specified here.
 - A [Convex](https://convex.dev) account and a deployment for this app (see below).
-- An [OpenRouter](https://openrouter.ai) API key for the chat API.
+- An [OpenRouter](https://openrouter.ai) API key for the chat API (see below).
+
+### Getting an OpenRouter API key
+
+1. Open **[openrouter.ai](https://openrouter.ai)** and **sign up** or **sign in** (you can use GitHub, Google, or email).
+2. Go to **[Keys](https://openrouter.ai/keys)** (from the dashboard: **API keys** / **Keys**).
+3. Click **Create API key**, give it a label if prompted, then **copy the key** once it is shown. Keys usually look like `sk-or-v1-...`.
+4. Paste it into `.env.local` as `OPENROUTER_API_KEY` (see [Environment variables](#environment-variables)). Do not commit it; `.env*` is gitignored.
+
+OpenRouter bills **by usage** across models; add a payment method or credits in their billing settings if your account requires it. The default chat model is set in code ([`lib/ai/openrouter.ts`](lib/ai/openrouter.ts)); override with `OPENROUTER_MODEL` if you want a different model on OpenRouter.
 
 ### Using your own Convex project
 
