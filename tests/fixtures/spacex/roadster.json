@@ -1,0 +1,7 @@
+{
+  "name": "Starman's Tesla Roadster",
+  "launch_date_utc": "2018-02-07T03:45:00.000Z",
+  "earth_distance_km": 80000000,
+  "mars_distance_km": 200000000,
+  "speed_kph": 100000
+}

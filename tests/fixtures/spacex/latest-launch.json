@@ -1,0 +1,10 @@
+{
+  "_id": "fixture_launch_latest_1",
+  "name": "Fixture Latest Mission",
+  "flight_number": 99998,
+  "date_utc": "2025-01-15T12:00:00.000Z",
+  "upcoming": false,
+  "success": true,
+  "rocket": { "name": "Falcon 9" },
+  "launchpad": { "name": "SLC-40" }
+}

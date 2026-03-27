@@ -1,0 +1,22 @@
+{
+  "docs": [
+    {
+      "_id": "fixture_launch_next_1",
+      "name": "Fixture Starlink Mission Gamma",
+      "flight_number": 99999,
+      "date_utc": "2026-06-01T12:00:00.000Z",
+      "date_precision": "hour",
+      "upcoming": true,
+      "rocket": { "name": "Falcon 9" },
+      "launchpad": { "name": "SLC-40" }
+    }
+  ],
+  "totalDocs": 1,
+  "limit": 1,
+  "totalPages": 1,
+  "page": 1,
+  "hasPrevPage": false,
+  "hasNextPage": false,
+  "prevPage": null,
+  "nextPage": null
+}

@@ -1,0 +1,14 @@
+{
+  "name": "SpaceX",
+  "founder": "Elon Musk",
+  "founded": 2002,
+  "employees": 13000,
+  "headquarters": {
+    "address": "Rocket Road",
+    "city": "Hawthorne",
+    "state": "California"
+  },
+  "links": {
+    "website": "https://www.spacex.com/"
+  }
+}
