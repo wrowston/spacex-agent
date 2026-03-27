@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { ChatStatus, UIMessage } from "ai";
 
+import { ChatMessageMarkdown } from "@/components/chat/chat-message-markdown";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -53,9 +54,10 @@ export function MessageList({ messages, status }: MessageListProps) {
                     : "border border-border/60 bg-card text-card-foreground",
                 )}
               >
-                <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                  {text}
-                </p>
+                <ChatMessageMarkdown
+                  content={text}
+                  variant={isUser ? "user" : "assistant"}
+                />
               </div>
             </div>
           );
